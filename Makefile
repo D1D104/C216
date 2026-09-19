@@ -25,7 +25,7 @@ install:
 	$(POETRY) install
 
 test:
-	$(PYTEST)
+	$(PYTEST) tests
 
 lint:
 	$(RUFF) check .
