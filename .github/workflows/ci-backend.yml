@@ -1,0 +1,61 @@
+name: CI-Backend
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    name: Ruff (Lint & Format)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configura o Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Instala o Poetry
+        run: python -m pip install --upgrade pip poetry
+
+      - name: Instala as dependências
+        run: python -m poetry install --with dev --no-root
+
+      - name: Verifica a formatação
+        run: python -m poetry run ruff format --check .
+
+      - name: Executa o lint
+        run: python -m poetry run ruff check .
+
+  test:
+    name: Pytest
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configura o Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Instala o Poetry
+        run: python -m pip install --upgrade pip poetry
+
+      - name: Instala as dependências
+        run: python -m poetry install --with dev
+
+      - name: Executa os testes
+        run: python -m poetry run pytest
