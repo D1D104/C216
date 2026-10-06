@@ -8,6 +8,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "fastapi (>=0.141.1,<0.142.0)",
+    "pydantic (>=2.9.0,<3.0.0)",
     "uvicorn (>=0.52.4,<0.53.0)"
 ]
 

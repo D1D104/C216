@@ -1,8 +1,8 @@
-.PHONY: help install test lint format run clean docker-build docker-up docker-down docker-logs compose-config db-shell
+.PHONY: help install test lint format format-check check run clean docker-build docker-up docker-down docker-logs compose-config db-shell
 
 BACKEND_DIR := backend
 POETRY := cd $(BACKEND_DIR) && poetry
-PYTEST := $(POETRY) run pytest
+PYTEST := $(POETRY) run python -m pytest
 UVICORN := $(POETRY) run uvicorn
 RUFF := $(POETRY) run ruff
 
@@ -12,6 +12,8 @@ help:
 	@echo "  make test     - executa testes"
 	@echo "  make lint     - verifica o código"
 	@echo "  make format   - formata o código"
+	@echo "  make format-check - verifica a formatação"
+	@echo "  make check    - executa testes, lint e verificação de formatação"
 	@echo "  make run      - inicia o servidor"
 	@echo "  make clean    - remove arquivos temporários"
 	@echo "  make docker-build - cria a imagem do backend"
@@ -25,10 +27,15 @@ install:
 	$(POETRY) install
 
 test:
-	$(PYTEST) tests
+	$(PYTEST) tests/unit tests/integration
 
 lint:
 	$(RUFF) check .
+
+format-check:
+	$(RUFF) format --check .
+
+check: test lint format-check
 
 format:
 	$(RUFF) format .
