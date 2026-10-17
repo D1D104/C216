@@ -1,10 +1,11 @@
-.PHONY: help install test lint format format-check check run clean docker-build docker-up docker-down docker-logs compose-config db-shell
+.PHONY: help install test lint format format-check check run clean docker-build docker-up docker-down docker-logs compose-config db-shell db-upgrade db-migration db-current
 
 BACKEND_DIR := backend
 POETRY := cd $(BACKEND_DIR) && poetry
 PYTEST := $(POETRY) run python -m pytest
 UVICORN := $(POETRY) run uvicorn
 RUFF := $(POETRY) run ruff
+ALEMBIC := $(POETRY) run alembic
 
 help:
 	@echo "Comandos disponíveis:"
@@ -16,6 +17,9 @@ help:
 	@echo "  make check    - executa testes, lint e verificação de formatação"
 	@echo "  make run      - inicia o servidor"
 	@echo "  make clean    - remove arquivos temporários"
+	@echo "  make db-upgrade - aplica migrations pendentes"
+	@echo "  make db-migration msg=... - gera uma nova migration"
+	@echo "  make db-current - mostra a revisão atual do banco"
 	@echo "  make docker-build - cria a imagem do backend"
 	@echo "  make docker-up - inicia backend e banco de dados"
 	@echo "  make docker-down - para os containers"
@@ -58,6 +62,15 @@ compose-config:
 
 db-shell:
 	docker compose exec db psql -U c216 -d c216
+
+db-upgrade:
+	$(ALEMBIC) upgrade head
+
+db-migration:
+	$(ALEMBIC) revision --autogenerate -m "$(msg)"
+
+db-current:
+	$(ALEMBIC) current
 
 run:
 	$(UVICORN) app.main:app --reload --app-dir src
