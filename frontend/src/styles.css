@@ -1,0 +1,224 @@
+@import "tailwindcss";
+
+/* biome-ignore lint/suspicious/noUnknownAtRules: @theme is a Tailwind CSS directive. */
+@theme {
+  --font-sans: "Segoe UI", sans-serif;
+  --font-display: "Segoe UI", sans-serif;
+}
+
+:root {
+  font-family: var(--font-sans);
+  color: #293a32;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  background: #f6f5f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #bc7659;
+  outline-offset: 3px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #35473d;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.field-input {
+  display: block;
+  width: 100%;
+  border: 1px solid #e6e5de;
+  border-radius: 0.65rem;
+  background: #fbfbf9;
+  padding: 0.75rem 0.875rem;
+  color: #293a32;
+  font-size: 0.875rem;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.field-input::placeholder {
+  color: #aaa9a1;
+}
+
+.field-input:focus {
+  border-color: #70957d;
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(112 149 125 / 14%);
+}
+
+.field-input-error,
+.field-input-error:focus {
+  border-color: #ca705a;
+}
+
+.field-hint {
+  margin-top: 0.4rem;
+  color: #97978d;
+  font-size: 0.75rem;
+}
+
+.field-error {
+  margin-top: 0.4rem;
+  color: #b94f3c;
+  font-size: 0.75rem;
+}
+
+.button-primary,
+.button-secondary {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.65rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.button-primary {
+  border: 1px solid #244637;
+  background: #244637;
+  color: white;
+}
+
+.button-primary:hover {
+  background: #315a46;
+}
+
+.button-secondary {
+  border: 1px solid #e6e5de;
+  background: white;
+  color: #59645d;
+}
+
+.button-secondary:hover {
+  background: #f6f5f0;
+}
+
+.icon-button {
+  display: grid;
+  size: 2rem;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #8b938d;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.icon-button:hover {
+  background: #edf3ef;
+  color: #315a46;
+}
+
+.icon-button-danger:hover {
+  background: #fbefec;
+  color: #b94f3c;
+}
+
+.section-eyebrow {
+  margin-bottom: 0.35rem;
+  color: #829287;
+  font-size: 0.675rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  color: #243a31;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.stat-card {
+  display: flex;
+  min-height: 5.5rem;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #e9e7df;
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 65%);
+  padding: 1rem 1.25rem;
+}
+
+.stat-label {
+  color: #777e77;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  color: #315a46;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty-state {
+  display: flex;
+  min-height: 15rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #deddd5;
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 40%);
+  padding: 2rem;
+  text-align: center;
+}
+
+.empty-icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: 1rem;
+  place-items: center;
+  border-radius: 0.85rem;
+  background: #eaf0eb;
+  color: #597863;
+}
