@@ -1,3 +1,13 @@
+from collections.abc import Iterator
+
+from fastapi.testclient import TestClient
+from sqlalchemy import Engine
+from sqlalchemy.orm import Session
+
+from app.database.session import get_session
+from app.main import create_app
+
+
 def test_item_endpoints_support_crud_and_query_filter(client):
     created_response = client.post(
         "/items/",
@@ -128,3 +138,40 @@ def test_item_endpoints_reject_blank_names_and_non_integer_ids(client):
     assert client.put("/items/1", json={"name": ""}).status_code == 422
     assert client.patch("/items/1", json={"name": ""}).status_code == 422
     assert client.get("/items/not-an-id").status_code == 422
+
+
+def test_items_persist_across_app_instances(
+    client: TestClient, db_engine: Engine
+) -> None:
+    created_item = client.post(
+        "/items/",
+        json={"name": "Caderno", "description": "Capa azul"},
+    ).json()
+    db_engine.dispose()
+
+    restarted_app = create_app()
+
+    def override_session() -> Iterator[Session]:
+        with Session(db_engine) as session:
+            yield session
+
+    restarted_app.dependency_overrides[get_session] = override_session
+    with TestClient(restarted_app) as restarted_client:
+        assert (
+            restarted_client.get(f"/items/{created_item['id']}").json() == created_item
+        )
+        assert restarted_client.get("/items/").json() == [created_item]
+
+
+def test_name_filter_keeps_casefold_matching_and_treats_symbols_literally(
+    client: TestClient,
+) -> None:
+    client.post("/items/", json={"name": "Lápis"})
+    client.post("/items/", json={"name": "Item % especial"})
+
+    assert [
+        item["name"] for item in client.get("/items/", params={"name": "LÁP"}).json()
+    ] == ["Lápis"]
+    assert [
+        item["name"] for item in client.get("/items/", params={"name": "%"}).json()
+    ] == ["Item % especial"]
