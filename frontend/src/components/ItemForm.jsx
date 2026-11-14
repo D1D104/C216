@@ -2,7 +2,13 @@ import { useEffect, useId, useState } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { normalizeItem, validateDescription, validateName } from "../utils/items.js";
 
-export default function ItemForm({ itemToEdit, onSave, onCancel }) {
+export default function ItemForm({
+  itemToEdit,
+  onSave,
+  onCancel,
+  disabled = false,
+  isSaving = false,
+}) {
   const formId = useId();
   const nameId = `${formId}-name`;
   const nameHintId = `${formId}-name-hint`;
@@ -19,8 +25,11 @@ export default function ItemForm({ itemToEdit, onSave, onCancel }) {
     setErrors({});
   }, [itemToEdit]);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    if (disabled || isSaving) {
+      return;
+    }
     const nextErrors = {
       name: validateName(name),
       description: validateDescription(description),
@@ -31,13 +40,10 @@ export default function ItemForm({ itemToEdit, onSave, onCancel }) {
       return;
     }
 
-    onSave(
-      normalizeItem({
-        id: itemToEdit?.id ?? crypto.randomUUID(),
-        name,
-        description,
-      }),
-    );
+    const saved = await onSave(normalizeItem({ name, description }));
+    if (!saved) {
+      return;
+    }
     setName("");
     setDescription("");
     setErrors({});
@@ -96,7 +102,12 @@ export default function ItemForm({ itemToEdit, onSave, onCancel }) {
       </div>
 
       <div className="flex flex-wrap gap-3 pt-1">
-        <button className="button-primary flex-1" type="submit">
+        <button
+          aria-busy={isSaving}
+          className="button-primary flex-1"
+          disabled={disabled || isSaving}
+          type="submit"
+        >
           {itemToEdit ? <Check size={17} /> : <Plus size={17} />}
           {itemToEdit ? "Salvar alterações" : "Adicionar item"}
         </button>

@@ -11,7 +11,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "vitest run",
-    "test:unit": "vitest run src/utils",
+    "test:unit": "vitest run src/utils src/api",
     "test:integration": "vitest run src/__tests__",
     "test:e2e": "playwright test"
   },

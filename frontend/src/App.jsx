@@ -1,8 +1,13 @@
-import { useId, useMemo, useState } from "react";
-import { Archive, ArrowUpRight, Layers3, Search } from "lucide-react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { Archive, ArrowUpRight, Layers3, RotateCw, Search } from "lucide-react";
+import { createItem, deleteItem as deleteItemRequest, listItems, updateItem } from "./api/items.js";
 import ItemForm from "./components/ItemForm.jsx";
 import ItemList from "./components/ItemList.jsx";
 import { searchItems } from "./utils/items.js";
+
+function newestFirst(items) {
+  return [...items].sort((first, second) => second.id - first.id);
+}
 
 export default function App() {
   const appId = useId();
@@ -11,28 +16,79 @@ export default function App() {
   const itemsHeadingId = `${appId}-items-heading`;
   const searchId = `${appId}-item-search`;
   const [items, setItems] = useState([]);
+  const [loadState, setLoadState] = useState("loading");
   const [query, setQuery] = useState("");
   const [itemToEdit, setItemToEdit] = useState(null);
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const filteredItems = useMemo(() => searchItems(items, query), [items, query]);
   const hasQuery = query.trim().length > 0;
 
-  function saveItem(item) {
-    if (itemToEdit) {
-      setItems((currentItems) =>
-        currentItems.map((currentItem) => (currentItem.id === item.id ? item : currentItem)),
-      );
-      setNotice(`“${item.name}” foi atualizado.`);
-      setItemToEdit(null);
-      return;
+  const loadItems = useCallback(async (signal) => {
+    setLoadState("loading");
+    setError("");
+    try {
+      const loadedItems = await listItems();
+      if (signal?.aborted) {
+        return;
+      }
+      setItems(newestFirst(loadedItems));
+      setLoadState("ready");
+    } catch (requestError) {
+      if (signal?.aborted) {
+        return;
+      }
+      setError(requestError.message);
+      setLoadState("error");
     }
+  }, []);
 
-    setItems((currentItems) => [item, ...currentItems]);
-    setNotice(`“${item.name}” foi adicionado ao seu acervo.`);
+  useEffect(() => {
+    const controller = new AbortController();
+    loadItems(controller.signal);
+    return () => controller.abort();
+  }, [loadItems]);
+
+  async function saveItem(values) {
+    setIsSaving(true);
+    setError("");
+    try {
+      if (itemToEdit) {
+        const updatedItem = await updateItem(itemToEdit.id, values);
+        setItems((currentItems) =>
+          currentItems.map((currentItem) =>
+            currentItem.id === updatedItem.id ? updatedItem : currentItem,
+          ),
+        );
+        setNotice(`“${updatedItem.name}” foi atualizado.`);
+        setItemToEdit(null);
+        return true;
+      }
+
+      const createdItem = await createItem(values);
+      setItems((currentItems) => [createdItem, ...currentItems]);
+      setNotice(`“${createdItem.name}” foi adicionado ao seu acervo.`);
+      return true;
+    } catch (requestError) {
+      setNotice("");
+      setError(requestError.message);
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  function deleteItem(item) {
+  async function deleteItem(item) {
     if (!window.confirm(`Tem certeza que deseja excluir “${item.name}”?`)) {
+      return;
+    }
+    setError("");
+    try {
+      await deleteItemRequest(item.id);
+    } catch (requestError) {
+      setNotice("");
+      setError(requestError.message);
       return;
     }
     setItems((currentItems) => currentItems.filter((currentItem) => currentItem.id !== item.id));
@@ -45,6 +101,7 @@ export default function App() {
   function startEditing(item) {
     setItemToEdit(item);
     setNotice("");
+    setError("");
   }
 
   return (
@@ -129,6 +186,8 @@ export default function App() {
               </h2>
             </div>
             <ItemForm
+              disabled={loadState !== "ready"}
+              isSaving={isSaving}
               itemToEdit={itemToEdit}
               onCancel={() => setItemToEdit(null)}
               onSave={saveItem}
@@ -182,13 +241,40 @@ export default function App() {
               </output>
             )}
 
-            <ItemList
-              hasItems={items.length > 0}
-              hasQuery={hasQuery}
-              items={filteredItems}
-              onDelete={deleteItem}
-              onEdit={startEditing}
-            />
+            {error && (
+              <div
+                className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+                role="alert"
+              >
+                <span>{error}</span>
+                {loadState === "error" && (
+                  <button
+                    className="button-secondary !py-1.5"
+                    onClick={() => loadItems()}
+                    type="button"
+                  >
+                    <RotateCw size={15} />
+                    Tentar novamente
+                  </button>
+                )}
+              </div>
+            )}
+
+            {loadState === "loading" ? (
+              <p aria-busy="true" className="empty-state text-sm text-stone-500">
+                Carregando itens...
+              </p>
+            ) : (
+              loadState === "ready" && (
+                <ItemList
+                  hasItems={items.length > 0}
+                  hasQuery={hasQuery}
+                  items={filteredItems}
+                  onDelete={deleteItem}
+                  onEdit={startEditing}
+                />
+              )
+            )}
           </section>
         </div>
       </main>
