@@ -175,3 +175,32 @@ def test_name_filter_keeps_casefold_matching_and_treats_symbols_literally(
     assert [
         item["name"] for item in client.get("/items/", params={"name": "%"}).json()
     ] == ["Item % especial"]
+
+
+def test_item_fields_are_trimmed_and_blank_description_becomes_null(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/items/", json={"name": "  Caderno  ", "description": "   "}
+    )
+
+    assert response.status_code == 201
+    assert response.json()["name"] == "Caderno"
+    assert response.json()["description"] is None
+
+
+def test_item_fields_follow_frontend_length_limits(client: TestClient) -> None:
+    assert client.post("/items/", json={"name": "x"}).status_code == 422
+    assert client.post("/items/", json={"name": "a" * 81}).status_code == 422
+    assert (
+        client.post(
+            "/items/", json={"name": "Caderno", "description": "a" * 281}
+        ).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            "/items/", json={"name": "a" * 80, "description": "a" * 280}
+        ).status_code
+        == 201
+    )
