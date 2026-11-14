@@ -26,6 +26,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Configure Python (API for E2E)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install backend dependencies (API for E2E)
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip poetry
+          python -m poetry install --no-root
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 

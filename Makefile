@@ -1,4 +1,4 @@
-.PHONY: help install install-backend install-frontend test test-backend test-frontend test-e2e playwright-install lint lint-backend lint-frontend format format-check format-check-backend format-check-frontend check run frontend-dev frontend-build frontend-preview clean docker-build docker-up docker-down docker-logs compose-config db-shell db-upgrade db-migration db-current
+.PHONY: help env test-all install install-backend install-frontend test test-backend test-frontend test-e2e playwright-install lint lint-backend lint-frontend format format-check format-check-backend format-check-frontend check run frontend-dev frontend-build frontend-preview clean docker-build docker-up docker-down docker-logs compose-config db-shell db-upgrade db-migration db-current
 
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
@@ -15,7 +15,8 @@ help:
 	@echo "  make install-backend   - instala dependências Python com Poetry"
 	@echo "  make install-frontend  - instala dependências Node com npm ci"
 	@echo "  make test              - executa testes unitários/de integração de ambos"
-	@echo "  make test-e2e          - executa testes E2E do frontend"
+	@echo "  make test-all          - executa TODOS os testes (backend, frontend e E2E)"
+	@echo "  make test-e2e          - executa testes E2E (frontend + API real)"
 	@echo "  make playwright-install - instala o Chromium para os testes E2E"
 	@echo "  make lint              - verifica backend e frontend"
 	@echo "  make format            - formata backend e frontend"
@@ -29,10 +30,11 @@ help:
 	@echo "  make db-upgrade        - aplica migrations pendentes"
 	@echo "  make db-migration msg=... - gera uma nova migration"
 	@echo "  make db-current        - mostra a revisão atual do banco"
-	@echo "  make docker-build      - cria a imagem do backend"
-	@echo "  make docker-up         - inicia backend e banco de dados"
+	@echo "  make env               - cria o .env a partir do .env.example"
+	@echo "  make docker-build      - cria as imagens do frontend e do backend"
+	@echo "  make docker-up         - inicia frontend, backend e banco de dados"
 	@echo "  make docker-down       - para os containers"
-	@echo "  make docker-logs       - acompanha os logs do backend"
+	@echo "  make docker-logs       - acompanha os logs de todos os serviços"
 	@echo "  make compose-config    - valida a configuração do Compose"
 	@echo "  make db-shell          - abre o psql no banco"
 
@@ -45,6 +47,8 @@ install-frontend:
 	$(NPM) ci
 
 test: test-backend test-frontend
+
+test-all: test test-e2e
 
 test-backend:
 	$(PYTEST) tests/unit tests/integration
@@ -74,25 +78,28 @@ format-check-backend:
 format-check-frontend:
 	$(NPM) run format:check
 
-check: test test-e2e lint format-check
+check: test-all lint format-check
 
 format:
 	$(RUFF) format .
 	$(NPM) run format
 
-docker-build:
+env:
+	@test -f .env || (cp .env.example .env && echo ".env criado a partir do .env.example")
+
+docker-build: env
 	docker compose build
 
-docker-up:
-	docker compose up -d
+docker-up: env
+	docker compose up -d --build
 
 docker-down:
 	docker compose down
 
 docker-logs:
-	docker compose logs -f backend
+	docker compose logs -f
 
-compose-config:
+compose-config: env
 	docker compose config
 
 db-shell:

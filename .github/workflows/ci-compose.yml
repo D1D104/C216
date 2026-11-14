@@ -1,0 +1,37 @@
+name: CI-Compose
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  compose:
+    name: Multi-container smoke test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env
+        run: cp .env.example .env
+
+      - name: Build and start services
+        run: docker compose up -d --build --wait
+
+      - name: Check frontend
+        run: curl --fail --silent http://localhost:5173/ | grep -q '<div id="root">'
+
+      - name: Check API and CORS
+        run: |
+          curl --fail --silent http://localhost:8000/items/
+          curl --fail --silent --include -H "Origin: http://localhost:5173" http://localhost:8000/items/ \
+            | grep -i "access-control-allow-origin: http://localhost:5173"
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v

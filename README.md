@@ -10,69 +10,97 @@ e um frontend React independente para gerenciamento de itens.
 - Docker Compose e Docker para executar o PostgreSQL localmente.
 - GNU Make para usar os comandos agregados da raiz.
 
+## Executando tudo com Docker Compose
+
+A aplicação roda em três containers: `frontend` (build do Vite servido pelo
+Nginx), `backend` (FastAPI) e `db` (PostgreSQL).
+
+```bash
+make docker-up      # cria o .env a partir do .env.example, se necessário
+```
+
+| Serviço | Endereço |
+| --- | --- |
+| Frontend | `http://localhost:5173` |
+| API e documentação | `http://localhost:8000` e `http://localhost:8000/docs` |
+| PostgreSQL | `localhost:5432` |
+
+Use `make docker-logs` para acompanhar os logs e `make docker-down` para parar
+os containers. Os dados ficam no volume `postgres_data`.
+
+### Variáveis de ambiente
+
+| Variável | Uso |
+| --- | --- |
+| `FRONTEND_PORT` | Porta publicada do frontend |
+| `VITE_API_URL` | Endereço da API acessado pelo navegador; embutido no build do frontend |
+| `BACKEND_PORT` | Porta publicada da API |
+| `CORS_ORIGINS` | Origens explícitas aceitas pela API, separadas por vírgula |
+| `POSTGRES_*` / `DATABASE_URL` | Configuração do banco |
+
+O CORS aceita apenas as origens listadas em `CORS_ORIGINS` (o padrão é
+`http://localhost:5173,http://127.0.0.1:5173`); `*` é recusado na
+inicialização. Ao trocar `FRONTEND_PORT` ou `BACKEND_PORT`, atualize também
+`CORS_ORIGINS` e `VITE_API_URL` e recrie as imagens com `make docker-up`.
+
 ## Frontend — gerenciador de itens
 
-O frontend da Prática 6 fica em `frontend/`. Ele funciona sem iniciar a API ou o
-banco: os registros são guardados apenas no estado React e reiniciam ao
-recarregar a página.
+O frontend fica em `frontend/` e consome a API em `/items/`: a listagem é
+carregada ao abrir a página e criar, editar e excluir são enviados ao backend.
+Os itens persistem no banco entre recarregamentos. Se a API estiver
+indisponível, a página mostra o erro e um botão para tentar novamente.
 
-Para instalar as dependências do frontend e iniciar o servidor de
-desenvolvimento:
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-Abra o endereço exibido pelo Vite (por padrão, `http://localhost:5173`). Também
-é possível iniciar o frontend a partir da raiz com `make frontend-dev`.
-
-### Testes e verificações do frontend
-
-Na raiz do repositório, os comandos `make test`, `make lint` e
-`make format-check` incluem o frontend e o backend. Para executar apenas os
-testes unitários e de integração do frontend:
+Para desenvolver fora do Docker, inicie a API (seção Backend) e depois:
 
 ```bash
-cd frontend
-npm test
+make install-frontend
+make frontend-dev
 ```
 
-Os testes E2E usam Playwright e Chromium. Instale o navegador uma vez e execute
-a suíte:
+O frontend usa `VITE_API_URL` para encontrar a API (padrão:
+`http://localhost:8000`).
+
+## Testes
+
+Um único comando executa todos os testes do projeto:
 
 ```bash
-make playwright-install
-make test-e2e
+make install
+make playwright-install   # apenas na primeira vez
+make test-all
 ```
 
-Para verificar as duas aplicações de uma vez — testes unitários/de integração,
-E2E, lint e formatação — execute `make check` depois de instalar as dependências
-e o Chromium. O build do frontend pode ser verificado com `make frontend-build`.
+| Camada | Local | Ferramenta |
+| --- | --- | --- |
+| Unitários do backend | `backend/tests/unit/` | pytest |
+| Integração do backend (HTTP, CORS, persistência) | `backend/tests/integration/` | pytest + `TestClient` |
+| Unitários do frontend (validação, cliente da API) | `frontend/src/utils/`, `frontend/src/api/` | Vitest |
+| Integração do frontend (tela + API simulada) | `frontend/src/__tests__/` | Vitest + Testing Library |
+| E2E (navegador + API real) | `frontend/e2e/` | Playwright |
 
-## Teste manual do frontend
+Os testes E2E sobem automaticamente a API real (portas `8001` e `5174`, com um
+SQLite temporário) e o frontend em modo desenvolvimento, então não dependem do
+Docker nem alteram o banco do Compose. `make check` executa todos os testes e
+também lint e formatação.
 
-1. Inicie o frontend com `make frontend-dev` ou `cd frontend; npm run dev` e
-   abra o endereço local do Vite.
+## Teste manual
+
+1. Execute `make docker-up` e abra `http://localhost:5173`.
 2. Tente adicionar um item sem nome e depois com um único caractere. Confirme
    que o formulário apresenta a validação e não cria o registro.
-3. Adicione um item usando espaços antes e depois do nome e da descrição.
-   Confirme que os espaços externos são removidos, o item aparece na lista e os
-   totais são atualizados.
-4. Adicione outro item sem descrição e confira a contagem de itens e a contagem
-   de itens com descrição.
-5. Pesquise parte do nome usando outra combinação de maiúsculas/minúsculas.
-   Limpe a busca e pesquise uma palavra que apareça somente na descrição.
-   Pesquise também um termo inexistente e confirme o estado sem resultados.
-6. Edite um item e salve. Confirme que o conteúdo é atualizado e que a
-   contagem não aumenta.
-7. Exclua um item e confirme a exclusão no diálogo. Repita e cancele a
-   confirmação para verificar que o item permanece.
-8. Recarregue a página e confirme que os registros foram reiniciados.
+3. Adicione um item com espaços antes e depois do nome e da descrição. Confirme
+   que os espaços são removidos e que o item aparece em
+   `http://localhost:8000/items/`.
+4. Pesquise parte do nome e uma palavra da descrição, com maiúsculas e
+   minúsculas misturadas, e um termo inexistente.
+5. Edite e exclua um item (aceitando e cancelando a confirmação).
+6. Recarregue a página e confirme que os itens continuam lá.
+7. Pare apenas a API com `docker compose stop backend`, recarregue a página e
+   confira a mensagem de erro. Inicie-a com `docker compose start backend` e
+   clique em "Tentar novamente".
 
-Os limites são 2–80 caracteres para o nome e até 280 caracteres para a
-descrição. Não há integração entre este frontend e a API nesta prática.
+Os limites são 2–80 caracteres para o nome e até 280 para a descrição, validados
+no frontend e também na API.
 
 ## Backend
 
@@ -88,10 +116,6 @@ Para instalar as dependências Python e executar os testes do backend:
 make install-backend
 make test-backend
 ```
-
-Os testes de serviço ficam em `backend/tests/unit/` e os testes HTTP com
-`TestClient` em `backend/tests/integration/`. `make test` executa estes testes e
-também os testes unitários/de integração do frontend.
 
 ### Banco de dados e migrations
 
@@ -133,16 +157,19 @@ documentação interativa fica disponível em `/docs` ao iniciar o backend com
 | Comando | Ação |
 | --- | --- |
 | `make install` | Instala dependências do backend e do frontend |
+| `make test-all` | Executa todos os testes: backend, frontend e E2E |
 | `make test` | Executa testes unitários/de integração do backend e frontend |
-| `make test-e2e` | Executa os testes E2E do frontend |
+| `make test-e2e` | Executa os testes E2E (frontend + API real) |
 | `make lint` | Executa Ruff e Biome |
 | `make format` | Formata backend e frontend |
 | `make format-check` | Verifica a formatação com Ruff e Biome |
-| `make check` | Executa testes, E2E, lint e verificações de formatação |
+| `make check` | Executa todos os testes, lint e verificações de formatação |
+| `make docker-up` | Sobe frontend, backend e banco com o Compose |
+| `make docker-down` | Para os containers |
 | `make run` | Inicia a API do backend |
 | `make frontend-dev` | Inicia o servidor de desenvolvimento frontend |
 | `make frontend-build` | Gera o build de produção do frontend |
-| `make frontend-preview` | Serve localmente o build de produção |
 
-O CI também possui workflows separados: backend e frontend executam suas
-respectivas verificações em `push` e `pull_request`.
+O CI possui três workflows executados em `push` e `pull_request`: backend
+(Ruff e pytest), frontend (Biome, Vitest, build e E2E com a API real) e Compose
+(sobe os três containers e verifica frontend, API e CORS).
