@@ -7,7 +7,8 @@ on:
 jobs:
   frontend:
     name: Frontend checks
-    runs-on: ubuntu-latest
+    # Playwright 1.55 não suporta o Ubuntu 26.04 (atual ubuntu-latest)
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
