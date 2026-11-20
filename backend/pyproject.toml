@@ -1,0 +1,40 @@
+[project]
+name = "pouso-alegre-fc-api"
+version = "0.1.0"
+description = "API de gestão do elenco e das partidas do Pouso Alegre FC"
+authors = [{ name = "D1D104" }]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi (>=0.141.1,<0.142.0)",
+    "pydantic (>=2.9.0,<3.0.0)",
+    "uvicorn (>=0.52.4,<0.53.0)",
+    "sqlalchemy (>=2.0,<3.0)",
+    "psycopg[binary] (>=3.2,<4.0)",
+    "alembic (>=1.13,<2.0)",
+]
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "ruff (>=0.16.4,<0.17.0)",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
